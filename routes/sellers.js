@@ -17,7 +17,7 @@ function sellersRoutes(app, { productsCollection, usersCollection }) {
         { $limit: 5 },
         {
           $lookup: {
-            from: "users",
+            from: "user",
             localField: "_id",
             foreignField: "email",
             as: "user",

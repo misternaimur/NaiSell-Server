@@ -24,10 +24,30 @@ function buyerRoutes(app, { ordersCollection, wishlistCollection, paymentsCollec
   app.get("/api/buyer/orders", verifyToken, requireRole("buyer"), async (req, res) => {
     try {
       const { email } = req.query;
-      const orders = await ordersCollection
-        .find({ buyerEmail: email })
-        .sort({ orderDate: -1 })
-        .toArray();
+      const orders = await ordersCollection.aggregate([
+        { $match: { buyerEmail: email } },
+        {
+          $addFields: {
+            productObjId: {
+              $cond: {
+                if: { $eq: [{ $strLenCP: "$productId" }, 24] },
+                then: { $toObjectId: "$productId" },
+                else: null
+              }
+            }
+          }
+        },
+        {
+          $lookup: {
+            from: "products",
+            localField: "productObjId",
+            foreignField: "_id",
+            as: "product"
+          }
+        },
+        { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
+        { $sort: { orderDate: -1 } }
+      ]).toArray();
       res.send(orders);
     } catch (error) {
       res.status(500).send({ success: false, message: error.message });

@@ -35,7 +35,7 @@ async function getCollections() {
   return {
     productsCollection: db.collection("products"),
     ordersCollection: db.collection("orders"),
-    usersCollection: db.collection("users"),
+    usersCollection: db.collection("user"),
     wishlistCollection: db.collection("wishlist"),
     reviewsCollection: db.collection("reviews"),
   };
