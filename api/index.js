@@ -48,16 +48,16 @@ app.use(async (req, res, next) => {
   if (!routesLoaded) {
     try {
       const collections = await getCollections();
-      require("./routes/users")(app, collections);
-      require("./routes/buyer")(app, collections);
-      require("./routes/seller")(app, collections);
-      require("./routes/products")(app, collections);
-      require("./routes/wishlist")(app, collections);
-      require("./routes/admin")(app, collections);
-      require("./routes/categories")(app, collections);
-      require("./routes/reviews")(app, collections);
-      require("./routes/sellers")(app, collections);
-      require("./routes/payments")(app, collections);
+      require("../routes/users")(app, collections);
+      require("../routes/buyer")(app, collections);
+      require("../routes/seller")(app, collections);
+      require("../routes/products")(app, collections);
+      require("../routes/wishlist")(app, collections);
+      require("../routes/admin")(app, collections);
+      require("../routes/categories")(app, collections);
+      require("../routes/reviews")(app, collections);
+      require("../routes/sellers")(app, collections);
+      require("../routes/payments")(app, collections);
       routesLoaded = true;
     } catch (error) {
       console.error("Failed to load routes:", error);
