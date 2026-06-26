@@ -32,6 +32,7 @@ async function run() {
       usersCollection: db.collection("user"),
       wishlistCollection: db.collection("wishlist"),
       reviewsCollection: db.collection("reviews"),
+      paymentsCollection: db.collection("payments"),
     };
 
     require("./routes/users")(app, collections);

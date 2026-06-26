@@ -38,6 +38,7 @@ async function getCollections() {
     usersCollection: db.collection("user"),
     wishlistCollection: db.collection("wishlist"),
     reviewsCollection: db.collection("reviews"),
+    paymentsCollection: db.collection("payments"),
   };
 }
 
