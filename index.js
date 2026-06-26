@@ -31,6 +31,7 @@ async function run() {
 
     const db = client.db(process.env.DB_NAME || "NaiSellDB");
     const collections = {
+      db,
       productsCollection: db.collection("products"),
       ordersCollection: db.collection("orders"),
       usersCollection: db.collection("user"),
@@ -40,6 +41,7 @@ async function run() {
     };
 
     require("./routes/users")(app, collections);
+    require("./routes/auth")(app, collections);
     require("./routes/buyer")(app, collections);
     require("./routes/seller")(app, collections);
     require("./routes/products")(app, collections);

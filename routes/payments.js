@@ -1,4 +1,4 @@
-const express = require("express");
+const { ObjectId } = require("mongodb");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { verifyToken, requireRole } = require("../middleware/auth");
 
@@ -8,7 +8,7 @@ function paymentsRoutes(app, { ordersCollection, paymentsCollection, productsCol
     try {
       const { productId, quantity, buyerEmail } = req.body;
 
-      const product = await productsCollection.findOne({ _id: require("mongodb").ObjectId(productId) });
+      const product = await productsCollection.findOne({ _id: new ObjectId(productId) });
       if (!product) {
         return res.status(404).send({ success: false, message: "Product not found" });
       }
@@ -46,7 +46,13 @@ function paymentsRoutes(app, { ordersCollection, paymentsCollection, productsCol
   });
 
   // Stripe webhook
-  app.post("/api/payments/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  app.post("/api/payments/webhook", (req, res) => {
+    // In Express 5, raw body parsing is handled by the middleware setup in api/index.js
+    // The raw body is already parsed by express.raw() middleware applied before routes
+    handleWebhook(req, res);
+  });
+
+  async function handleWebhook(req, res) {
     const sig = req.headers["stripe-signature"];
     let event;
 
@@ -88,13 +94,13 @@ function paymentsRoutes(app, { ordersCollection, paymentsCollection, productsCol
       await paymentsCollection.insertOne(payment);
 
       await productsCollection.updateOne(
-        { _id: require("mongodb").ObjectId(session.metadata.productId) },
+        { _id: new ObjectId(session.metadata.productId) },
         { $set: { status: "Sold" } }
       );
     }
 
     res.json({ received: true });
-  });
+  }
 
   // Get checkout session status
   app.get("/api/payments/session/:sessionId", verifyToken, requireRole("buyer"), async (req, res) => {

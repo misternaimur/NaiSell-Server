@@ -26,13 +26,14 @@ async function getDb() {
   });
 
   cachedClient = client;
-  cachedDb = client.db(process.env.DB_NAME || "nai_sell_db");
+  cachedDb = client.db(process.env.DB_NAME || "NaiSellDB");
   return cachedDb;
 }
 
 async function getCollections() {
   const db = await getDb();
   return {
+    db,
     productsCollection: db.collection("products"),
     ordersCollection: db.collection("orders"),
     usersCollection: db.collection("user"),
@@ -50,6 +51,7 @@ app.use(async (req, res, next) => {
     try {
       const collections = await getCollections();
       require("../routes/users")(app, collections);
+      require("../routes/auth")(app, collections);
       require("../routes/buyer")(app, collections);
       require("../routes/seller")(app, collections);
       require("../routes/products")(app, collections);
