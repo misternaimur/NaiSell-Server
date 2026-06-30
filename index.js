@@ -1,3 +1,5 @@
+/** @format */
+
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -13,18 +15,20 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://nai-sell.vercel.app",
   process.env.CLIENT_URL,
-].filter(Boolean);
+];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. curl, Postman, server-to-server)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error(`CORS: origin '${origin}' not allowed`));
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "10mb" }));
 
 const uri = process.env.MONGODB_URI;
