@@ -13,18 +13,12 @@ const port = process.env.PORT || 5000;
 // Allow both localhost (dev) and production client
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://nai-sell.vercel.app",
-  process.env.CLIENT_URL,
+   process.env.CLIENT_URL,
 ];
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. curl, Postman, server-to-server)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS: origin '${origin}' not allowed`));
-    },
+    origin: ["http://localhost:3000", process.env.CLIENT_URL],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   }),
