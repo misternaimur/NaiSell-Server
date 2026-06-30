@@ -3,9 +3,12 @@ const { ObjectId } = require("mongodb");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-function authRoutes(app, { usersCollection, db }) {
+function authRoutes(app, collections) {
   // Exchange a Better-Auth session token for a JWT
   app.post("/api/auth/token", async (req, res) => {
+    if (!collections.db) {
+      return res.status(503).send({ success: false, message: "Database not connected yet." });
+    }
     try {
       const { sessionToken } = req.body;
       if (!sessionToken) {
@@ -13,7 +16,7 @@ function authRoutes(app, { usersCollection, db }) {
       }
 
       // Look up the session in Better-Auth's session collection
-      const sessionsCollection = db.collection("session");
+      const sessionsCollection = collections.db.collection("session");
 
       const session = await sessionsCollection.findOne({
         $or: [
@@ -34,17 +37,17 @@ function authRoutes(app, { usersCollection, db }) {
 
       // Try to find by _id first
       if (ObjectId.isValid(userId)) {
-        user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        user = await collections.usersCollection.findOne({ _id: new ObjectId(userId) });
       }
 
       // Fallback: find by email
       if (!user) {
-        user = await usersCollection.findOne({ email: userId });
+        user = await collections.usersCollection.findOne({ email: userId });
       }
 
       // Last resort: find by any id field
       if (!user) {
-        user = await usersCollection.findOne({ id: userId });
+        user = await collections.usersCollection.findOne({ id: userId });
       }
 
       if (!user) {
@@ -74,6 +77,9 @@ function authRoutes(app, { usersCollection, db }) {
 
   // Validate JWT and return user info
   app.get("/api/auth/me", async (req, res) => {
+    if (!collections.usersCollection) {
+      return res.status(503).send({ success: false, message: "Database not connected yet." });
+    }
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -83,7 +89,7 @@ function authRoutes(app, { usersCollection, db }) {
       const token = authHeader.split(" ")[1];
       const decoded = jwt.verify(token, JWT_SECRET);
 
-      const user = await usersCollection.findOne({ email: decoded.email });
+      const user = await collections.usersCollection.findOne({ email: decoded.email });
       if (!user) {
         return res.status(404).send({ success: false, message: "User not found" });
       }

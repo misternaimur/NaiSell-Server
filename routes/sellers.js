@@ -1,10 +1,12 @@
 const { ObjectId } = require("mongodb");
 
-function sellersRoutes(app, { productsCollection, usersCollection }) {
+function sellersRoutes(app, collections) {
   // Public - top sellers
   app.get("/api/sellers/top", async (req, res) => {
+    if (!collections.productsCollection)
+      return res.status(503).send({ success: false, message: "Database not connected yet." });
     try {
-      const topSellers = await productsCollection.aggregate([
+      const topSellers = await collections.productsCollection.aggregate([
         { $match: { status: "Available" } },
         {
           $group: {

@@ -1,17 +1,19 @@
 const { ObjectId } = require("mongodb");
 const { verifyToken, requireRole } = require("../middleware/auth");
 
-function buyerRoutes(app, { ordersCollection, wishlistCollection, paymentsCollection }) {
+function buyerRoutes(app, collections) {
   app.get("/api/buyer/stats", verifyToken, requireRole("buyer"), async (req, res) => {
     try {
       const { email } = req.query;
       if (!email)
         return res.status(400).send({ message: "Email is required" });
+      if (!collections.ordersCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
 
-      const totalOrders = await ordersCollection.countDocuments({
+      const totalOrders = await collections.ordersCollection.countDocuments({
         buyerEmail: email,
       });
-      const wishlistCount = await wishlistCollection.countDocuments({
+      const wishlistCount = await collections.wishlistCollection.countDocuments({
         buyerEmail: email,
       });
 
@@ -24,7 +26,10 @@ function buyerRoutes(app, { ordersCollection, wishlistCollection, paymentsCollec
   app.get("/api/buyer/orders", verifyToken, requireRole("buyer"), async (req, res) => {
     try {
       const { email } = req.query;
-      const orders = await ordersCollection.aggregate([
+      if (!collections.ordersCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
+
+      const orders = await collections.ordersCollection.aggregate([
         { $match: { buyerEmail: email } },
         {
           $addFields: {
@@ -57,18 +62,21 @@ function buyerRoutes(app, { ordersCollection, wishlistCollection, paymentsCollec
   app.get("/api/buyer/payments", verifyToken, requireRole("buyer"), async (req, res) => {
     try {
       const { email } = req.query;
+      if (!collections.paymentsCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
+
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 20;
       const skip = (page - 1) * limit;
 
-      const payments = await paymentsCollection
+      const payments = await collections.paymentsCollection
         .find({ buyerEmail: email })
         .sort({ paymentDate: -1 })
         .skip(skip)
         .limit(limit)
         .toArray();
 
-      const total = await paymentsCollection.countDocuments({ buyerEmail: email });
+      const total = await collections.paymentsCollection.countDocuments({ buyerEmail: email });
 
       res.send({
         success: true,
@@ -83,9 +91,12 @@ function buyerRoutes(app, { ordersCollection, wishlistCollection, paymentsCollec
   app.patch("/api/orders/:id/cancel", verifyToken, requireRole("buyer"), async (req, res) => {
     try {
       const id = req.params.id;
+      if (!collections.ordersCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
+
       const filter = { _id: new ObjectId(id) };
 
-      const order = await ordersCollection.findOne(filter);
+      const order = await collections.ordersCollection.findOne(filter);
       if (!order) return res.status(404).send({ message: "Order not found" });
 
       if (order.status === "Shipped" || order.status === "Delivered") {
@@ -94,7 +105,7 @@ function buyerRoutes(app, { ordersCollection, wishlistCollection, paymentsCollec
           .send({ message: "Cannot cancel order after shipment." });
       }
 
-      const result = await ordersCollection.updateOne(filter, {
+      const result = await collections.ordersCollection.updateOne(filter, {
         $set: { status: "Cancelled" },
       });
       res.send({

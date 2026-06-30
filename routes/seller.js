@@ -1,19 +1,22 @@
 const { ObjectId } = require("mongodb");
 const { verifyToken, requireRole } = require("../middleware/auth");
 
-function sellerRoutes(app, { productsCollection, ordersCollection }) {
+function sellerRoutes(app, collections) {
   app.get("/api/seller/stats", verifyToken, requireRole("seller"), async (req, res) => {
     try {
       const { email } = req.query;
-      const totalProducts = await productsCollection.countDocuments({
+      if (!collections.productsCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
+
+      const totalProducts = await collections.productsCollection.countDocuments({
         sellerEmail: email,
       });
-      const pendingOrders = await ordersCollection.countDocuments({
+      const pendingOrders = await collections.ordersCollection.countDocuments({
         "products.sellerEmail": email,
         status: "Pending",
       });
 
-      const completedOrders = await ordersCollection
+      const completedOrders = await collections.ordersCollection
         .find({ "products.sellerEmail": email, status: "Delivered" })
         .toArray();
       const totalSales = completedOrders.length;
@@ -31,12 +34,14 @@ function sellerRoutes(app, { productsCollection, ordersCollection }) {
   app.get("/api/seller/stats/:email", verifyToken, requireRole("seller"), async (req, res) => {
     try {
       const email = req.params.email;
+      if (!collections.productsCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
 
-      const totalProducts = await productsCollection.countDocuments({
+      const totalProducts = await collections.productsCollection.countDocuments({
         sellerEmail: email,
       });
 
-      const sellerOrders = await ordersCollection
+      const sellerOrders = await collections.ordersCollection
         .find({ "products.sellerEmail": email })
         .toArray();
 
@@ -66,7 +71,10 @@ function sellerRoutes(app, { productsCollection, ordersCollection }) {
   app.get("/api/seller/orders", verifyToken, requireRole("seller"), async (req, res) => {
     try {
       const { email } = req.query;
-      const orders = await ordersCollection
+      if (!collections.ordersCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
+
+      const orders = await collections.ordersCollection
         .find({ "products.sellerEmail": email })
         .sort({ orderDate: -1 })
         .toArray();
@@ -80,7 +88,10 @@ function sellerRoutes(app, { productsCollection, ordersCollection }) {
     try {
       const id = req.params.id;
       const { status } = req.body;
-      const result = await ordersCollection.updateOne(
+      if (!collections.ordersCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
+
+      const result = await collections.ordersCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: { status: status } },
       );

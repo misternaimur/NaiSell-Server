@@ -1,9 +1,12 @@
 const { ObjectId } = require("mongodb");
 const { verifyToken, requireRole } = require("../middleware/auth");
 
-function productsRoutes(app, { productsCollection }) {
+function productsRoutes(app, collections) {
   // Public - list products
   app.get("/api/products", async (req, res) => {
+    if (!collections.productsCollection) {
+      return res.status(503).send({ success: false, message: "Database not connected yet. Please retry in a moment." });
+    }
     try {
       const { email, search, category, condition } = req.query;
       let query = {};
@@ -16,7 +19,7 @@ function productsRoutes(app, { productsCollection }) {
       if (category) query.category = category;
       if (condition) query.condition = condition;
 
-      const products = await productsCollection
+      const products = await collections.productsCollection
         .find(query)
         .sort({ createdAt: -1 })
         .toArray();
@@ -29,11 +32,14 @@ function productsRoutes(app, { productsCollection }) {
 
   // Public - get single product by ID
   app.get("/api/products/:id", async (req, res) => {
+    if (!collections.productsCollection) {
+      return res.status(503).send({ success: false, message: "Database not connected yet." });
+    }
     try {
       const { id } = req.params;
       let product;
       try {
-        product = await productsCollection.findOne({ _id: new ObjectId(id) });
+        product = await collections.productsCollection.findOne({ _id: new ObjectId(id) });
       } catch {
         return res.status(404).send({ success: false, message: "Product not found" });
       }
@@ -48,6 +54,9 @@ function productsRoutes(app, { productsCollection }) {
 
   // Protected - create product (seller only)
   app.post("/api/products", verifyToken, requireRole("seller"), async (req, res) => {
+    if (!collections.productsCollection) {
+      return res.status(503).send({ success: false, message: "Database not connected yet." });
+    }
     try {
       const product = req.body;
       product.price = parseFloat(product.price);
@@ -55,7 +64,7 @@ function productsRoutes(app, { productsCollection }) {
       product.createdAt = new Date();
       product.status = "Pending";
 
-      const result = await productsCollection.insertOne(product);
+      const result = await collections.productsCollection.insertOne(product);
       res.status(201).send({ success: true, result });
     } catch (error) {
       res.status(500).send({ success: false, message: error.message });
@@ -64,6 +73,9 @@ function productsRoutes(app, { productsCollection }) {
 
   // Protected - update product (seller only)
   app.put("/api/products/:id", verifyToken, requireRole("seller"), async (req, res) => {
+    if (!collections.productsCollection) {
+      return res.status(503).send({ success: false, message: "Database not connected yet." });
+    }
     try {
       const id = req.params.id;
       const updatedData = req.body;
@@ -73,7 +85,7 @@ function productsRoutes(app, { productsCollection }) {
         updatedData.price = parseFloat(updatedData.price);
       if (updatedData.stock) updatedData.stock = parseInt(updatedData.stock);
 
-      const result = await productsCollection.updateOne(
+      const result = await collections.productsCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: updatedData },
       );
@@ -85,9 +97,12 @@ function productsRoutes(app, { productsCollection }) {
 
   // Protected - delete product (seller only)
   app.delete("/api/products/:id", verifyToken, requireRole("seller"), async (req, res) => {
+    if (!collections.productsCollection) {
+      return res.status(503).send({ success: false, message: "Database not connected yet." });
+    }
     try {
       const id = req.params.id;
-      const result = await productsCollection.deleteOne({
+      const result = await collections.productsCollection.deleteOne({
         _id: new ObjectId(id),
       });
       res.send({ success: true, result });
@@ -98,3 +113,4 @@ function productsRoutes(app, { productsCollection }) {
 }
 
 module.exports = productsRoutes;
+

@@ -1,29 +1,29 @@
 const { verifyToken, requireRole } = require("../middleware/auth");
 
-function usersRoutes(app, { usersCollection, ordersCollection, wishlistCollection }) {
+function usersRoutes(app, collections) {
   // Protected - get profile
   app.get("/api/users/profile", verifyToken, async (req, res) => {
     try {
-      const { email } = req.query;
+      const email = req.query.email;
       if (!email)
-        return res
-          .status(400)
-          .send({ success: false, message: "Email is required" });
+        return res.status(400).send({ success: false, message: "Email is required" });
+      if (!collections.usersCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
 
-      const user = await usersCollection.findOne({ email: email });
+      const user = await collections.usersCollection.findOne({ email: email });
       if (!user)
         return res
           .status(404)
           .send({ success: false, message: "User not found" });
 
-      const totalOrders = await ordersCollection.countDocuments({
+      const totalOrders = await collections.ordersCollection.countDocuments({
         buyerEmail: email,
       });
-      const wishlistCount = await wishlistCollection.countDocuments({
+      const wishlistCount = await collections.wishlistCollection.countDocuments({
         buyerEmail: email,
       });
 
-      const paidOrders = await ordersCollection
+      const paidOrders = await collections.ordersCollection
         .find({ buyerEmail: email, paymentStatus: "Paid" })
         .toArray();
       const totalSpent = paidOrders.reduce(
@@ -54,11 +54,11 @@ function usersRoutes(app, { usersCollection, ordersCollection, wishlistCollectio
     try {
       const { email, name, image } = req.body;
       if (!email)
-        return res
-          .status(400)
-          .send({ success: false, message: "Email is required" });
+        return res.status(400).send({ success: false, message: "Email is required" });
+      if (!collections.usersCollection)
+        return res.status(503).send({ success: false, message: "Database not connected yet." });
 
-      const result = await usersCollection.updateOne(
+      const result = await collections.usersCollection.updateOne(
         { email: email },
         { $set: { name: name, image: image } },
         { upsert: true },
